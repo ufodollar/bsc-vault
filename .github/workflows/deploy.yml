@@ -1,0 +1,58 @@
+name: Deploy Contracts to BSC
+
+on:
+  workflow_dispatch: # 这个设置让你可以在网页上手动点击运行
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Check Balance & Deploy
+        env:
+          RPC_URL: "https://bsc-rpc.publicnode.com"
+          MAIN_PK: ${{ secrets.MAIN_PRIVATE_KEY }}
+          MAIN_ADDR: ${{ secrets.MAIN_WALLET_ADDRESS }}
+        run: |
+          echo "正在部署 UFO 代币..."
+          # 部署代币
+          TOKEN_OUT=$(forge create src/UFOToken.sol:UFOToken --private-key $MAIN_PK --rpc-url $RPC_URL --broadcast --chain-id 56 --legacy --gas-price 1gwei 2>&1)
+          TOKEN=$(echo "$TOKEN_OUT" | grep -oE '0x[a-fA-F0-9]{40}' | tail -n 1)
+          
+          if [ -z "$TOKEN" ]; then
+            echo "❌ 代币部署失败！日志如下："
+            echo "$TOKEN_OUT"
+            exit 1
+          fi
+          echo "✅ 代币地址: $TOKEN"
+          
+          echo "正在部署 UFO 金库..."
+          # 把合约代码里的收款地址替换成真实的 Main 地址
+          sed -i "s|address public constant PROFIT_RECIPIENT = .*;|address public constant PROFIT_RECIPIENT = $MAIN_ADDR;|g" src/UFOVault.sol
+          
+          # 部署金库
+          VAULT_OUT=$(forge create src/UFOVault.sol:UFOVault --constructor-args $TOKEN --private-key $MAIN_PK --rpc-url $RPC_URL --broadcast --chain-id 56 --legacy --gas-price 1gwei 2>&1)
+          VAULT=$(echo "$VAULT_OUT" | grep -oE '0x[a-fA-F0-9]{40}' | tail -n 1)
+          
+          if [ -z "$VAULT" ]; then
+            echo "❌ 金库部署失败！日志如下："
+            echo "$VAULT_OUT"
+            exit 1
+          fi
+          echo "✅ 金库地址: $VAULT"
+          
+          echo "正在执行授权..."
+          OUT3=$(cast send $TOKEN "setMinter(address,bool)" $VAULT true --private-key $MAIN_PK --rpc-url $RPC_URL --legacy --gas-price 1gwei 2>&1)
+          echo "✅ 授权完成！"
+          
+          echo "=== 🎉 最终部署结果 ==="
+          echo "新代币地址: $TOKEN"
+          echo "新金库地址: $VAULT"
