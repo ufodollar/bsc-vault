@@ -1,4 +1,5 @@
 #!/bin/bash
+set +e  # 强制关闭所有错误静默退出机制，保证能看到任何报错
 
 # ================== 颜色定义 ==================
 RED='\033[0;31m'
@@ -55,8 +56,8 @@ echo -e "   私钥: ${RED}${BRANCH_PK}${NC}"
 echo -e "${CYAN}==================================================${NC}"
 
 echo -e "\n${YELLOW}👉 ⚠️ 真实主网充值提示：${NC}"
-echo -e "   1. 向 ${GREEN}Main 钱包 (${MAIN_ADDR})${NC} 转入 0.003 BNB (用于支付真实部署费)"
-echo -e "   2. 向 ${GREEN}Branch 钱包 (${BRANCH_ADDR})${NC} 转入 0.005 BNB (用于以后自动收利息)"
+echo -e "   1. 向 ${GREEN}Main 钱包 (${MAIN_ADDR})${NC} 转入 0.003 BNB"
+echo -e "   2. 向 ${GREEN}Branch 钱包 (${BRANCH_ADDR})${NC} 转入 0.005 BNB"
 
 echo -e "\n${CYAN}==================================================${NC}"
 read -p "👉 确认 BNB 已真实到账，且私钥已保存后，按 [Enter] 键开始主网部署..."
@@ -75,26 +76,26 @@ GAS="1gwei"
 
 echo -e "\n[2/4] 正在使用 Main 钱包部署 UFO 代币...${NC}"
 OUT1=$(forge create src/UFOToken.sol:UFOToken --private-key $MAIN_PK --rpc-url $RPC --broadcast --chain-id 56 --legacy --gas-price $GAS 2>&1)
+EXIT1=$?
 TOKEN=$(echo "$OUT1" | grep -oE '0x[a-fA-F0-9]{40}' | tail -n 1)
 
-if [ -z "$TOKEN" ]; then
+if [ $EXIT1 -ne 0 ] || [ -z "$TOKEN" ]; then
     echo -e "${RED}❌ 错误: 代币部署失败！以下是真实报错日志：${NC}"
     echo -e "${RED}--------------------------------------------------${NC}"
     echo "$OUT1"
     echo -e "${RED}--------------------------------------------------${NC}"
-    echo -e "${YELLOW}💡 常见原因：1. Main 钱包里没有 BNB。2. 节点拥堵超时。${NC}"
+    echo -e "${YELLOW}💡 提示：如果看到 'insufficient funds'，说明你还没往 Main 钱包充真实的 BNB。${NC}"
     exit 1
 fi
 echo -e "${GREEN}✅ 代币部署成功: $TOKEN${NC}"
 
 echo -e "\n[3/4] 正在使用 Main 钱包部署 UFO 金库...${NC}"
-# 自动替换利润接收地址
 sed -i "s|address public constant PROFIT_RECIPIENT = .*;|address public constant PROFIT_RECIPIENT = $MAIN_ADDR;|g" src/UFOVault.sol
-
 OUT2=$(forge create src/UFOVault.sol:UFOVault --constructor-args $TOKEN --private-key $MAIN_PK --rpc-url $RPC --broadcast --chain-id 56 --legacy --gas-price $GAS 2>&1)
+EXIT2=$?
 VAULT=$(echo "$OUT2" | grep -oE '0x[a-fA-F0-9]{40}' | tail -n 1)
 
-if [ -z "$VAULT" ]; then
+if [ $EXIT2 -ne 0 ] || [ -z "$VAULT" ]; then
     echo -e "${RED}❌ 错误: 金库部署失败！以下是真实报错日志：${NC}"
     echo -e "${RED}--------------------------------------------------${NC}"
     echo "$OUT2"
@@ -105,6 +106,7 @@ echo -e "${GREEN}✅ 金库部署成功: $VAULT${NC}"
 
 echo -e "\n[4/4] 正在为新金库授权 UFO 铸币权...${NC}"
 OUT3=$(cast send $TOKEN "setMinter(address,bool)" $VAULT true --private-key $MAIN_PK --rpc-url $RPC --legacy --gas-price $GAS 2>&1)
+EXIT3=$?
 
 if [[ "$OUT3" == *"status               1"* ]]; then
     echo -e "${GREEN}✅ 授权成功！全流程闭环。${NC}"
