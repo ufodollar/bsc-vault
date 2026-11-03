@@ -24,7 +24,7 @@ contract UFOVault {
     IAavePool public constant AAVE_POOL = IAavePool(0x6807dc923806fE8Fd134338EABCA509979a7e0cB);
     IERC20 public constant aToken = IERC20(0xa9251ca9DE909CB71783723713B21E4233fbf1B1);
     
-    // 利润接收地址（部署脚本会自动替换为真实的 Main 钱包地址）
+    // 利润接收地址（部署脚本或手动部署时替换为真实的 Main 钱包地址）
     address public constant PROFIT_RECIPIENT = 0x0000000000000000000000000000000000000000;
 
     IUFOToken public immutable ufoToken;
@@ -61,20 +61,15 @@ contract UFOVault {
         return dayOfYear <= 30;
     }
 
-    modifier depositSeason() {
-        require(!_isJanuary(), "Deposit is closed in January");
-        _;
-    }
-
     modifier redeemSeason() {
         require(_isJanuary(), "Redeem is only allowed in January");
         _;
     }
 
-    function deposit(uint256 _amount) external nonReentrant depositSeason {
+    // 🔥 彻底移除 depositSeason 限制，全年随时可存！
+    function deposit(uint256 _amount) external nonReentrant {
         require(_amount > 0, "Amount must be greater than 0");
         
-        // 判断是否是协议历史上的首笔存款
         bool isFirstDeposit = (ufoToken.totalSupply() == 0);
 
         USDT.transferFrom(msg.sender, address(this), _amount);
@@ -83,10 +78,8 @@ contract UFOVault {
         uint256 nav = getExchangeRate();
         uint256 ufoAmount = (_amount * 1e12 * 1e18) / nav;
         
-        // 🛡️ 机构级安全机制：防初始净值通胀攻击 (Inflation Attack)
+        // 🛡️ 防初始净值通胀攻击 (Inflation Attack)
         if (isFirstDeposit) {
-            // 铸造极小额的"死份额"发送至黑洞地址，永久锁死。
-            // 防止黑客利用极小金额存钱，随后暴力转账拉高 NAV 来窃取后续用户本金。
             ufoToken.mint(address(0x000000000000000000000000000000000000dEaD), 1000);
             ufoAmount = ufoAmount - 1000;
         }
