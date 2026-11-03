@@ -22,44 +22,34 @@ jobs:
           MAIN_ADDR: ${{ secrets.MAIN_WALLET_ADDRESS }}
         run: |
           set +e
-          echo "🔍 1. 检查环境变量..."
-          if [ -z "$MAIN_PK" ]; then
-            echo "❌ 错误：MAIN_PRIVATE_KEY 为空！"
+          
+          if [ -z "$MAIN_PK" ] || [ -z "$MAIN_ADDR" ]; then
+            echo "❌ 错误：Secrets 中的 MAIN_PRIVATE_KEY 或 MAIN_WALLET_ADDRESS 为空！"
             exit 1
           fi
-          if [ -z "$MAIN_ADDR" ]; then
-            echo "❌ 错误：MAIN_WALLET_ADDRESS 为空！"
-            exit 1
-          fi
-          echo "✅ 环境变量通过。"
 
-          echo "🔍 2. 检查余额..."
+          echo "🔍 1. 检查余额..."
           BALANCE=$(cast balance $MAIN_ADDR --rpc-url $RPC_URL)
-          echo "当前余额: $BALANCE wei"
           if [ "$BALANCE" -eq 0 ]; then
-            echo "❌ 错误：钱包里没有 BNB！"
+            echo "❌ 错误：Main 钱包 ($MAIN_ADDR) 没有 BNB！"
             exit 1
           fi
+          echo "✅ 余额充足: $BALANCE wei"
 
-          echo "🔍 3. 开始部署代币..."
+          echo "🔍 2. 自动注入利润接收地址..."
+          # 🔥 核心动作：自动把代码里的 0x000... 替换成你的真实地址
+          sed -i "s|address public constant PROFIT_RECIPIENT = .*;|address public constant PROFIT_RECIPIENT = $MAIN_ADDR;|g" src/UFOVault.sol
+
+          echo "🔍 3. 开始部署 UFO 代币..."
           TOKEN_OUT=$(forge create src/UFOToken.sol:UFOToken --private-key $MAIN_PK --rpc-url $RPC_URL --broadcast --chain-id 56 --legacy --gas-price 1gwei 2>&1)
-          echo "$TOKEN_OUT"
           TOKEN=$(echo "$TOKEN_OUT" | grep -oE '0x[a-fA-F0-9]{40}' | tail -n 1)
-          if [ -z "$TOKEN" ]; then
-            echo "❌ 代币部署失败！"
-            exit 1
-          fi
+          if [ -z "$TOKEN" ]; then echo "❌ 代币部署失败"; echo "$TOKEN_OUT"; exit 1; fi
           echo "✅ 代币地址: $TOKEN"
 
-          echo "🔍 4. 开始部署金库..."
-          sed -i "s|address public constant PROFIT_RECIPIENT = .*;|address public constant PROFIT_RECIPIENT = $MAIN_ADDR;|g" src/UFOVault.sol
+          echo "🔍 4. 开始部署 UFO 金库..."
           VAULT_OUT=$(forge create src/UFOVault.sol:UFOVault --constructor-args $TOKEN --private-key $MAIN_PK --rpc-url $RPC_URL --broadcast --chain-id 56 --legacy --gas-price 1gwei 2>&1)
-          echo "$VAULT_OUT"
           VAULT=$(echo "$VAULT_OUT" | grep -oE '0x[a-fA-F0-9]{40}' | tail -n 1)
-          if [ -z "$VAULT" ]; then
-            echo "❌ 金库部署失败！"
-            exit 1
-          fi
+          if [ -z "$VAULT" ]; then echo "❌ 金库部署失败"; echo "$VAULT_OUT"; exit 1; fi
           echo "✅ 金库地址: $VAULT"
 
           echo "🔍 5. 开始授权..."
