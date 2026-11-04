@@ -24,7 +24,7 @@ contract UFOVault {
     IAavePool public constant AAVE_POOL = IAavePool(0x6807dc923806fE8Fd134338EABCA509979a7e0cB);
     IERC20 public constant aToken = IERC20(0xa9251ca9DE909CB71783723713B21E4233fbf1B1);
     
-    // 利润接收地址（部署脚本或手动部署时替换为真实的 Main 钱包地址）
+    // 利润接收地址（部署脚本会自动替换）
     address public constant PROFIT_RECIPIENT = 0x0000000000000000000000000000000000000000;
 
     IUFOToken public immutable ufoToken;
@@ -50,23 +50,7 @@ contract UFOVault {
         return (totalAssets * 1e12 * 1e18) / totalSupply;
     }
 
-    function _isJanuary() internal view returns (bool) {
-        // 东八区（UTC+8）时间计算
-        uint256 timestamp = block.timestamp + 8 hours;
-        uint256 year = timestamp / 365 days;
-        uint256 yearStart = year * 365 days;
-        uint256 dayOfYear = (timestamp - yearStart) / 1 days;
-        
-        // 1月1日到1月31日（dayOfYear 为 0 到 30）
-        return dayOfYear <= 30;
-    }
-
-    modifier redeemSeason() {
-        require(_isJanuary(), "Redeem is only allowed in January");
-        _;
-    }
-
-    // 🔥 彻底移除 depositSeason 限制，全年随时可存！
+    // 🔥 彻底删除 1 月份检查和 depositSeason 限制，实现全年随时存取
     function deposit(uint256 _amount) external nonReentrant {
         require(_amount > 0, "Amount must be greater than 0");
         
@@ -78,27 +62,29 @@ contract UFOVault {
         uint256 nav = getExchangeRate();
         uint256 ufoAmount = (_amount * 1e12 * 1e18) / nav;
         
-        // 🛡️ 防初始净值通胀攻击 (Inflation Attack)
+        // 防初始净值通胀攻击
         if (isFirstDeposit) {
             ufoToken.mint(address(0x000000000000000000000000000000000000dEaD), 1000);
             ufoAmount = ufoAmount - 1000;
         }
 
         require(ufoAmount > 0, "UFO amount too small");
-        
         ufoToken.mint(msg.sender, ufoAmount);
         lastHarvestBalance += _amount;
     }
 
-    function withdraw(uint256 _ufoAmount) external nonReentrant redeemSeason {
+    // 🔥 彻底删除 redeemSeason 限制，实现随时赎回
+    function withdraw(uint256 _ufoAmount) external nonReentrant {
         require(_ufoAmount > 0, "UFO amount must be greater than 0");
         
+        // 结算平台利润（保证账目清晰）
         _harvestProfitInternal();
 
         uint256 nav = getExchangeRate();
         uint256 usdtAmount = (_ufoAmount * nav) / 1e18 / 1e12;
         require(usdtAmount > 0, "USDT amount too small");
         
+        // 销毁份额，确保留下的人净值不变
         ufoToken.burn(msg.sender, _ufoAmount);
         
         uint256 actualWithdrawn = AAVE_POOL.withdraw(address(USDT), usdtAmount, address(this));
