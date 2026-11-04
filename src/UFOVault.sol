@@ -27,6 +27,9 @@ contract UFOVault {
     // 利润接收地址（部署脚本会自动替换）
     address public constant PROFIT_RECIPIENT = 0x0000000000000000000000000000000000000000;
 
+    // 赎回手续费 0.1% (10 / 10000 = 0.1%)
+    uint256 public constant WITHDRAW_FEE_PERCENT = 10; 
+
     IUFOToken public immutable ufoToken;
     uint256 public lastHarvestBalance;
     uint256 private _status = 1;
@@ -50,7 +53,6 @@ contract UFOVault {
         return (totalAssets * 1e12 * 1e18) / totalSupply;
     }
 
-    // 🔥 彻底删除 1 月份检查和 depositSeason 限制，实现全年随时存取
     function deposit(uint256 _amount) external nonReentrant {
         require(_amount > 0, "Amount must be greater than 0");
         
@@ -62,7 +64,6 @@ contract UFOVault {
         uint256 nav = getExchangeRate();
         uint256 ufoAmount = (_amount * 1e12 * 1e18) / nav;
         
-        // 防初始净值通胀攻击
         if (isFirstDeposit) {
             ufoToken.mint(address(0x000000000000000000000000000000000000dEaD), 1000);
             ufoAmount = ufoAmount - 1000;
@@ -73,23 +74,34 @@ contract UFOVault {
         lastHarvestBalance += _amount;
     }
 
-    // 🔥 彻底删除 redeemSeason 限制，实现随时赎回
     function withdraw(uint256 _ufoAmount) external nonReentrant {
         require(_ufoAmount > 0, "UFO amount must be greater than 0");
         
-        // 结算平台利润（保证账目清晰）
+        // 1. 结算平台未提取的 50% 利润
         _harvestProfitInternal();
 
+        // 2. 计算用户应得的总金额（包含本金+利息）
         uint256 nav = getExchangeRate();
         uint256 usdtAmount = (_ufoAmount * nav) / 1e18 / 1e12;
         require(usdtAmount > 0, "USDT amount too small");
+
+        // 3. 🔥 计算 0.1% 赎回手续费，并算出用户实际到手的金额
+        uint256 feeAmount = (usdtAmount * WITHDRAW_FEE_PERCENT) / 10000;
+        uint256 userAmount = usdtAmount - feeAmount;
         
-        // 销毁份额，确保留下的人净值不变
+        // 4. 销毁用户的 UFO
         ufoToken.burn(msg.sender, _ufoAmount);
         
+        // 5. 从 Aave 提取总金额
         uint256 actualWithdrawn = AAVE_POOL.withdraw(address(USDT), usdtAmount, address(this));
-        USDT.transfer(msg.sender, actualWithdrawn);
         
+        // 6. 分配资金：手续费给平台，剩下给用户
+        if (feeAmount > 0) {
+            USDT.transfer(PROFIT_RECIPIENT, feeAmount);
+        }
+        USDT.transfer(msg.sender, userAmount);
+        
+        // 7. 更新台账（本金扣除已提走的用户金额+手续费）
         lastHarvestBalance -= actualWithdrawn;
     }
 
