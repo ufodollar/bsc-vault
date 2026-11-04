@@ -24,11 +24,11 @@ contract UFOVault {
     IAavePool public constant AAVE_POOL = IAavePool(0x6807dc923806fE8Fd134338EABCA509979a7e0cB);
     IERC20 public constant aToken = IERC20(0xa9251ca9DE909CB71783723713B21E4233fbf1B1);
     
-    // 手续费接收地址（部署时自动替换为你真实的 Main 钱包地址）
+    // 手续费接收地址（部署脚本会在部署时自动替换为你真实的 Main 钱包地址）
     address public constant PROFIT_RECIPIENT = 0x0000000000000000000000000000000000000000;
 
-    // 赎回手续费 1% (100 / 10000 = 1%)
-    uint256 public constant WITHDRAW_FEE_PERCENT = 100; 
+    // 🔥 赎回手续费 1.5% (150 / 10000 = 0.015)
+    uint256 public constant WITHDRAW_FEE_PERCENT = 150; 
 
     IUFOToken public immutable ufoToken;
     uint256 private _status = 1;
@@ -45,7 +45,7 @@ contract UFOVault {
         USDT.approve(address(AAVE_POOL), type(uint256).max);
     }
 
-    // 净值 = 金库总资产 / UFO总流通量
+    // 净值 = 金库总资产（包含所有利息） / UFO总流通量
     function getExchangeRate() public view returns (uint256) {
         uint256 totalSupply = ufoToken.totalSupply();
         if (totalSupply == 0) return 1e18; 
@@ -53,19 +53,21 @@ contract UFOVault {
         return (totalAssets * 1e12 * 1e18) / totalSupply;
     }
 
-    // 随时申购
+    // 🔥 随时申购（无时间限制）
     function deposit(uint256 _amount) external nonReentrant {
         require(_amount > 0, "Amount must be greater than 0");
         
         bool isFirstDeposit = (ufoToken.totalSupply() == 0);
 
+        // 1. 拉取 USDT 并存入 Aave
         USDT.transferFrom(msg.sender, address(this), _amount);
         AAVE_POOL.supply(address(USDT), _amount, address(this), 0);
         
+        // 2. 计算并铸造 UFO
         uint256 nav = getExchangeRate();
         uint256 ufoAmount = (_amount * 1e12 * 1e18) / nav;
         
-        // 防通胀攻击
+        // 3. 🛡️ 机构级安全：防初始净值通胀攻击 (Inflation Attack)
         if (isFirstDeposit) {
             ufoToken.mint(address(0x000000000000000000000000000000000000dEaD), 1000);
             ufoAmount = ufoAmount - 1000;
@@ -75,25 +77,26 @@ contract UFOVault {
         ufoToken.mint(msg.sender, ufoAmount);
     }
 
-    // 随时赎回（仅扣除 1% 手续费）
+    // 🔥 随时赎回（仅扣除 1.5% 手续费）
     function withdraw(uint256 _ufoAmount) external nonReentrant {
         require(_ufoAmount > 0, "UFO amount must be greater than 0");
 
+        // 1. 计算总资产价值
         uint256 nav = getExchangeRate();
         uint256 usdtAmount = (_ufoAmount * nav) / 1e18 / 1e12;
         require(usdtAmount > 0, "USDT amount too small");
 
-        // 计算 1% 手续费
+        // 2. 计算 1.5% 手续费
         uint256 feeAmount = (usdtAmount * WITHDRAW_FEE_PERCENT) / 10000;
         uint256 userAmount = usdtAmount - feeAmount;
         
-        // 销毁份额
+        // 3. 销毁用户的 UFO 份额
         ufoToken.burn(msg.sender, _ufoAmount);
         
-        // 从 Aave 提取全额
+        // 4. 从 Aave 提取总额
         AAVE_POOL.withdraw(address(USDT), usdtAmount, address(this));
         
-        // 手续费打入你的钱包，本金+利息打给用户
+        // 5. 分配资金：手续费直接打给 Main 钱包，本金+利息打给用户
         if (feeAmount > 0) {
             USDT.transfer(PROFIT_RECIPIENT, feeAmount);
         }
