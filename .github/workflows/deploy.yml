@@ -18,16 +18,24 @@ jobs:
           version: nightly
 
       - name: Install Dependencies
-        run: forge install OpenZeppelin/openzeppelin-contracts --no-commit
+        run: |
+          forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 --no-commit
 
-      - name: Deploy Contracts
+      - name: Check Secrets and Deploy
         env:
           RPC_URL: "https://bsc-rpc.publicnode.com"
-          MAIN_PK: ${{ secrets.MAIN_PRIVATE_KEY }}
+          DEPLOYER_PK: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
           MAIN_ADDR: ${{ secrets.MAIN_WALLET_ADDRESS }}
         run: |
-          if [ -z "$MAIN_PK" ] || [ -z "$MAIN_ADDR" ]; then
-            echo "❌ 错误：Secrets 中的 MAIN_PRIVATE_KEY 或 MAIN_WALLET_ADDRESS 为空！"
+          echo "🔍 检查环境变量..."
+          if [ -z "$DEPLOYER_PK" ]; then
+            echo "❌ 错误：DEPLOYER_PRIVATE_KEY 未配置或为空！"
             exit 1
           fi
-          forge script script/Deploy.s.sol:DeployScript --rpc-url $RPC_URL --private-key $MAIN_PK --broadcast --legacy
+          if [ -z "$MAIN_ADDR" ]; then
+            echo "❌ 错误：MAIN_WALLET_ADDRESS 未配置或为空！"
+            exit 1
+          fi
+          
+          echo "🚀 开始编译并部署到 BSC..."
+          forge script script/Deploy.s.sol:DeployScript --rpc-url $RPC_URL --private-key $DEPLOYER_PK --broadcast --legacy
