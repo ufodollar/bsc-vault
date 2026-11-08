@@ -24,16 +24,30 @@ jobs:
       - name: Check Secrets and Deploy
         env:
           RPC_URL: "https://bsc-rpc.publicnode.com"
-          DEPLOYER_PK: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
-          MAIN_ADDR: ${{ secrets.MAIN_WALLET_ADDRESS }}
+          RAW_PK: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+          RAW_ADDR: ${{ secrets.MAIN_WALLET_ADDRESS }}
         run: |
-          echo "🔍 检查环境变量..."
-          if [ -z "$DEPLOYER_PK" ]; then
-            echo "❌ 错误：DEPLOYER_PRIVATE_KEY 未配置或为空！"
-            exit 1
+          echo "🔍 正在清洗环境变量..."
+          
+          # 1. 暴力删除私钥中所有的空格、回车、换行符
+          CLEAN_PK=$(echo "$RAW_PK" | tr -d '[:space:]')
+          # 2. 如果去了 0x 前缀，Foundry 有时不认，我们强行给它加回去
+          if [[ ! "$CLEAN_PK" == 0x* ]]; then
+            CLEAN_PK="0x$CLEAN_PK"
           fi
-          if [ -z "$MAIN_ADDR" ]; then
-            echo "❌ 错误：MAIN_WALLET_ADDRESS 未配置或为空！"
+          
+          # 3. 清洗钱包地址
+          CLEAN_ADDR=$(echo "$RAW_ADDR" | tr -d '[:space:]')
+
+          # 把清洗后的变量重新导出，供 Foundry 使用
+          export DEPLOYER_PK=$CLEAN_PK
+          export MAIN_ADDR=$CLEAN_ADDR
+
+          echo "✅ 私钥清洗后长度: ${#DEPLOYER_PK} (应该是 66，因为带了 0x)"
+          echo "✅ 地址清洗后长度: ${#MAIN_ADDR} (应该是 42)"
+          
+          if [ "$MAIN_ADDR" == "0x" ]; then
+            echo "❌ 错误：MAIN_WALLET_ADDRESS 未配置！"
             exit 1
           fi
           
