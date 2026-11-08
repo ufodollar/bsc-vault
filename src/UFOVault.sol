@@ -2,89 +2,121 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 
-interface IUFOToken {
+interface IUFOToken is IERC20 {
     function mint(address to, uint256 amount) external;
     function burn(address from, uint256 amount) external;
 }
 
-contract UFOVault is ReentrancyGuard, Ownable {
+contract UFOVault is ReentrancyGuard, Ownable, Pausable {
     using SafeERC20 for IERC20;
 
     IERC20 public immutable usdt;
     IUFOToken public immutable ufo;
+
+    address public feeRecipient;
     
-    // 🌟 1:1 比例，不再需要 RATE 变量，直接 1 比 1 兑换
-    
-    address public FEE_RECIPIENT;
-    uint256 public constant FEE_RATE = 50; // 0.5%
+    // 0.5% 手续费
+    uint256 public constant FEE_RATE = 50; 
     uint256 public constant FEE_BASE = 10000;
 
-    event Deposited(address indexed user, uint256 usdtAmount, uint256 ufoAmount);
-    event Withdrawn(address indexed user, uint256 ufoAmount, uint256 usdtAmount);
+    event Deposited(address indexed user, uint256 usdtAmount, uint256 ufoAmount, uint256 feeAmount);
+    event Withdrawn(address indexed user, uint256 ufoAmount, uint256 usdtAmount, uint256 feeAmount);
+    event FeeRecipientUpdated(address indexed newRecipient);
+
+    // 自定义错误，减少 Gas 并让报错更清晰
+    error ZeroAddress();
+    error ZeroAmount();
+    error AmountTooSmall();
 
     constructor(address _usdt, address _ufo, address _feeRecipient) Ownable(msg.sender) {
+        if (_usdt == address(0) || _ufo == address(0) || _feeRecipient == address(0)) {
+            revert ZeroAddress();
+        }
+        
         usdt = IERC20(_usdt);
         ufo = IUFOToken(_ufo);
-        FEE_RECIPIENT = _feeRecipient;
+        feeRecipient = _feeRecipient;
     }
 
-    // 用 USDT 买 UFO (1:1)
-    function deposit(uint256 usdtAmount) external nonReentrant {
-        require(usdtAmount > 0, "Amount must be > 0");
-        
-        // 1. 计算手续费 (0.5%)
+    /**
+     * @notice 用户存入 USDT，1:1 获得 UFO
+     * @dev 用户必须提前对金库合约 approve 足够的 USDT
+     */
+    function deposit(uint256 usdtAmount) external nonReentrant whenNotPaused {
+        if (usdtAmount == 0) revert ZeroAmount();
+
+        // 1. 计算 0.5% 手续费
         uint256 feeAmount = (usdtAmount * FEE_RATE) / FEE_BASE;
         uint256 netUsdtAmount = usdtAmount - feeAmount;
 
-        // 2. 1:1 映射，净 USDT 就是 UFO 数量
+        // 2. 1:1 映射，净 USDT 就是应得的 UFO
         uint256 ufoAmount = netUsdtAmount;
-        require(ufoAmount > 0, "Amount too small");
+        if (ufoAmount == 0) revert AmountTooSmall();
 
-        // 3. 把手续费直接打给 Main 钱包
+        // 3. 安全拉取：直接从用户钱包扣除手续费给收款方，扣除本金给金库
+        // 这里依靠的是用户在前端执行的 approve(VAULT_ADDRESS, usdtAmount)
         if (feeAmount > 0) {
-            usdt.safeTransferFrom(msg.sender, FEE_RECIPIENT, feeAmount);
+            usdt.safeTransferFrom(msg.sender, feeRecipient, feeAmount);
         }
-        
-        // 4. 把剩下的 USDT 放进金库，并给用户铸造 UFO
         usdt.safeTransferFrom(msg.sender, address(this), netUsdtAmount);
+
+        // 4. 调用 UFO 合约的 mint 方法给用户铸造代币
         ufo.mint(msg.sender, ufoAmount);
 
-        emit Deposited(msg.sender, netUsdtAmount, ufoAmount);
+        emit Deposited(msg.sender, netUsdtAmount, ufoAmount, feeAmount);
     }
 
-    // 用 UFO 赎回 USDT (1:1)
-    function withdraw(uint256 ufoAmount) external nonReentrant {
-        require(ufoAmount > 0, "Amount must be > 0");
+    /**
+     * @notice 用户销毁 UFO，1:1 赎回 USDT
+     * @dev 用户不需要对 UFO 进行 approve，金库利用 BURNER_ROLE 直接销毁用户的 UFO
+     */
+    function withdraw(uint256 ufoAmount) external nonReentrant whenNotPaused {
+        if (ufoAmount == 0) revert ZeroAmount();
 
-        // 1. 1:1 映射，UFO 数量就是毛 USDT 数量
+        // 1. 1:1 映射
         uint256 grossUsdtAmount = ufoAmount;
+        if (grossUsdtAmount == 0) revert AmountTooSmall();
 
-        // 2. 计算手续费 (0.5%)
+        // 2. 计算手续费
         uint256 feeAmount = (grossUsdtAmount * FEE_RATE) / FEE_BASE;
         uint256 netUsdtAmount = grossUsdtAmount - feeAmount;
 
-        // 3. 销毁用户的 UFO
+        // 3. 销毁用户的 UFO （金库必须有足够的 BURNER_ROLE）
         ufo.burn(msg.sender, ufoAmount);
 
-        // 4. 把手续费打给 Main 钱包，剩下的还给用户
+        // 4. 金库把 USDT 打给用户，把手续费打给收款方
         if (feeAmount > 0) {
-            usdt.safeTransfer(FEE_RECIPIENT, feeAmount);
+            usdt.safeTransfer(feeRecipient, feeAmount);
         }
         usdt.safeTransfer(msg.sender, netUsdtAmount);
 
-        emit Withdrawn(msg.sender, ufoAmount, netUsdtAmount);
+        emit Withdrawn(msg.sender, ufoAmount, netUsdtAmount, feeAmount);
     }
 
-    // 🌟 前端调用获取实时汇率（固定返回 1 * 10^18，代表 1:1）
-    function getExchangeRate() external pure returns (uint256) {
-        return 1 * 10**18; 
-    }
+    // --- 管理职能 ---
 
     function setFeeRecipient(address _newRecipient) external onlyOwner {
-        FEE_RECIPIENT = _newRecipient;
+        if (_newRecipient == address(0)) revert ZeroAddress();
+        feeRecipient = _newRecipient;
+        emit FeeRecipientUpdated(_newRecipient);
+    }
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    // 供前端调用
+    function getExchangeRate() external pure returns (uint256) {
+        return 1 * 10**18; 
     }
 }
