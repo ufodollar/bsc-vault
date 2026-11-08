@@ -7,7 +7,7 @@ import "../src/UFOVault.sol";
 
 contract DeployScript is Script {
     function run() external {
-        // 🔥 核心修复：这里的名字必须和 deploy.yml 里配置的环境变量名一致
+        // 🔥 核心修复：从 GitHub Actions 的环境变量中读取 DEPLOYER_PK
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PK");
         address mainAddr = vm.envAddress("MAIN_ADDR");
         
