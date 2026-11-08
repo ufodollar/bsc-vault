@@ -1,7 +1,7 @@
 name: Deploy Contracts to BSC
 
 on:
-  workflow_dispatch: # 允许你在网页上手动点击触发
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -14,6 +14,9 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
+
+      - name: Install Dependencies
+        run: forge install OpenZeppelin/openzeppelin-contracts --no-commit
 
       - name: Deploy Contracts
         env:
