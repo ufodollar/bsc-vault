@@ -1,0 +1,28 @@
+name: Deploy Contracts to BSC
+
+on:
+  workflow_dispatch: # 允许你在网页上手动点击触发
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Deploy Contracts
+        env:
+          RPC_URL: "https://bsc-rpc.publicnode.com"
+          MAIN_PK: ${{ secrets.MAIN_PRIVATE_KEY }}
+          MAIN_ADDR: ${{ secrets.MAIN_WALLET_ADDRESS }}
+        run: |
+          if [ -z "$MAIN_PK" ] || [ -z "$MAIN_ADDR" ]; then
+            echo "❌ 错误：Secrets 中的 MAIN_PRIVATE_KEY 或 MAIN_WALLET_ADDRESS 为空！"
+            exit 1
+          fi
+          forge script script/Deploy.s.sol:DeployScript --rpc-url $RPC_URL --private-key $MAIN_PK --broadcast
