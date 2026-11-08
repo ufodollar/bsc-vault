@@ -9,6 +9,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
@@ -28,4 +30,4 @@ jobs:
             echo "❌ 错误：Secrets 中的 MAIN_PRIVATE_KEY 或 MAIN_WALLET_ADDRESS 为空！"
             exit 1
           fi
-          forge script script/Deploy.s.sol:DeployScript --rpc-url $RPC_URL --private-key $MAIN_PK --broadcast
+          forge script script/Deploy.s.sol:DeployScript --rpc-url $RPC_URL --private-key $MAIN_PK --broadcast --legacy
