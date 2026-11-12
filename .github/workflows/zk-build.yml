@@ -23,7 +23,6 @@ jobs:
           npm init -y
           npm install circom2 snarkjs
 
-      # 1. 强行生成电路并编译
       - name: Create and Compile Circuit
         run: |
           cat << 'EOF' > multiplier.circom
@@ -40,14 +39,23 @@ jobs:
           echo "文件已生成，开始编译："
           npx circom2 multiplier.circom --r1cs --wasm --sym
 
-      # 2. 直接从 GitHub 官方仓库下载 ptau (去掉了 -q 静默，这样出错能看见)
+      # 🔥 换成官方 Google Cloud 镜像，并加入大小检查
       - name: Download Powers of Tau
         run: |
-          echo "Downloading ptau from official GitHub..."
-          wget https://github.com/iden3/snarkjs/raw/master/test/pot12_final.ptau
+          echo "Downloading ptau from Google Cloud (ZKEVM)..."
+          wget https://storage.googleapis.com/zkevm/ptau/powersOfTau28_hez_final_12.ptau -O pot12_final.ptau
+          
+          echo "检查下载的文件大小："
           ls -lh pot12_final.ptau
+          
+          # 如果文件小于 1MB (例如之前的 395 字节)，说明下载的是假网页，直接报错退出
+          FILE_SIZE=$(stat -c%s pot12_final.ptau)
+          if [ "$FILE_SIZE" -lt 1000000 ]; then
+            echo "❌ 错误：下载的文件太小，可能被拦截了！"
+            exit 1
+          fi
+          echo "✅ ptau 文件下载成功！"
 
-      # 3. 生成密钥和验证器
       - name: Generate Keys and Verifier
         run: |
           npx snarkjs groth16 setup multiplier.r1cs pot12_final.ptau multiplier_0000.zkey
