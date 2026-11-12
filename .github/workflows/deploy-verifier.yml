@@ -21,7 +21,8 @@ jobs:
 
       - name: Check Secrets and Deploy Verifier
         env:
-          RPC_URL: "https://bsc-rpc.publicnode.com"
+          # 🔥 换成了 BNB 官方最稳定的 RPC 节点，绝不会返回 403
+          RPC_URL: "https://bsc-dataseed.binance.org"
           RAW_PK: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
         run: |
           echo "🔍 正在清洗私钥..."
@@ -31,8 +32,7 @@ jobs:
           fi
           export DEPLOYER_PK=$CLEAN_PK
           
-          echo "🚀 开始编译并单点部署 Verifier.sol 到 BSC..."
+          echo "🚀 开始部署 Groth16Verifier 到 BSC..."
           
-          # 尝试部署：如果合约名字叫 Verifier 就部署 Verifier；如果叫 Groth16Verifier 就部署 Groth16Verifier
-          forge create src/Verifier.sol:Verifier --rpc-url $RPC_URL --private-key $DEPLOYER_PK --broadcast --legacy || \
+          # 直接部署 Groth16Verifier，不加任何多余的尝试
           forge create src/Verifier.sol:Groth16Verifier --rpc-url $RPC_URL --private-key $DEPLOYER_PK --broadcast --legacy
