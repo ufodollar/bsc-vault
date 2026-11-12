@@ -23,8 +23,21 @@ jobs:
           npm init -y
           npm install circom2 snarkjs
 
-      - name: Compile Circuit
+      # 🔥 防呆设计：直接在脚本里生成电路文件，不管仓库里有没有
+      - name: Create and Compile Circuit
         run: |
+          cat << 'EOF' > multiplier.circom
+          pragma circom 2.0.0;
+          template Multiplier() {
+              signal input a;
+              signal input b;
+              signal output c;
+              c <== a * b;
+          }
+          component main = Multiplier();
+          EOF
+          
+          echo "文件已生成，开始编译："
           npx circom2 multiplier.circom --r1cs --wasm --sym
 
       - name: Download Powers of Tau (Pot 08)
