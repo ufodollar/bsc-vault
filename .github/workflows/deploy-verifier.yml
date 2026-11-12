@@ -32,5 +32,7 @@ jobs:
           export DEPLOYER_PK=$CLEAN_PK
           
           echo "🚀 开始编译并单点部署 Verifier.sol 到 BSC..."
-          # 注意：这里我们直接使用 forge create 单点部署，不跑完整的 script 脚本
-          forge create src/Verifier.sol:Verifier --rpc-url $RPC_URL --private-key $DEPLOYER_PK --broadcast --legacy
+          
+          # 尝试部署：如果合约名字叫 Verifier 就部署 Verifier；如果叫 Groth16Verifier 就部署 Groth16Verifier
+          forge create src/Verifier.sol:Verifier --rpc-url $RPC_URL --private-key $DEPLOYER_PK --broadcast --legacy || \
+          forge create src/Verifier.sol:Groth16Verifier --rpc-url $RPC_URL --private-key $DEPLOYER_PK --broadcast --legacy
