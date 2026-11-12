@@ -1,0 +1,36 @@
+name: Deploy Verifier to BSC
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install Dependencies
+        run: |
+          forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 --no-commit
+
+      - name: Check Secrets and Deploy Verifier
+        env:
+          RPC_URL: "https://bsc-rpc.publicnode.com"
+          RAW_PK: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+        run: |
+          echo "🔍 正在清洗私钥..."
+          CLEAN_PK=$(echo "$RAW_PK" | tr -d '[:space:]')
+          if [[ ! "$CLEAN_PK" == 0x* ]]; then
+            CLEAN_PK="0x$CLEAN_PK"
+          fi
+          export DEPLOYER_PK=$CLEAN_PK
+          
+          echo "🚀 开始编译并单点部署 Verifier.sol 到 BSC..."
+          # 注意：这里我们直接使用 forge create 单点部署，不跑完整的 script 脚本
+          forge create src/Verifier.sol:Verifier --rpc-url $RPC_URL --private-key $DEPLOYER_PK --broadcast --legacy
