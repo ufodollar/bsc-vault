@@ -1,5 +1,3 @@
-
-
 UFO Dollar - Smart Contracts & Protocol Core
 
 The official smart contract architecture for UFO Dollar, a universal, USD-pegged settlement stablecoin built on BNB Smart Chain (BSC).
