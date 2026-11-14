@@ -23,8 +23,8 @@ jobs:
         env:
           RPC_URL: "https://bsc-dataseed.binance.org"
           RAW_PK: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
-          # 你的手续费接收地址（主钱包）
-          FEE_RECIPIENT: "0x5246769739a1534ee66589fae2bdb6c3b0cf4eea" 
+          # 🔥 已修正为你的正确接收地址
+          FEE_RECIPIENT: "0x62B51A31ff8d9eBCD4777AE850a7ce524fF2ffA3" 
         run: |
           echo "🔍 正在清洗私钥..."
           CLEAN_PK=$(echo "$RAW_PK" | tr -d '[:space:]')
@@ -35,8 +35,7 @@ jobs:
           
           echo "🚀 开始部署双币种 UFOVault 到 BSC..."
           
-          # 这里的参数顺序必须严格对应你的 UFOVault 构造函数：
-          # constructor(address _usdt, address _usdc, address _ufo, address _feeRecipient)
+          # 参数顺序: USDT, USDC, UFO, FeeRecipient
           forge create src/UFOVault.sol:UFOVault \
             --rpc-url $RPC_URL \
             --private-key $DEPLOYER_PK \
