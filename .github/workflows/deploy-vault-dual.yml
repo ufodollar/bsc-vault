@@ -1,0 +1,49 @@
+name: Deploy Dual-Collateral UFOVault
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install Dependencies
+        run: |
+          forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 --no-commit
+
+      - name: Check Secrets and Deploy
+        env:
+          RPC_URL: "https://bsc-dataseed.binance.org"
+          RAW_PK: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+          # 你的手续费接收地址（主钱包）
+          FEE_RECIPIENT: "0x5246769739a1534ee66589fae2bdb6c3b0cf4eea" 
+        run: |
+          echo "🔍 正在清洗私钥..."
+          CLEAN_PK=$(echo "$RAW_PK" | tr -d '[:space:]')
+          if [[ ! "$CLEAN_PK" == 0x* ]]; then
+            CLEAN_PK="0x$CLEAN_PK"
+          fi
+          export DEPLOYER_PK=$CLEAN_PK
+          
+          echo "🚀 开始部署双币种 UFOVault 到 BSC..."
+          
+          # 这里的参数顺序必须严格对应你的 UFOVault 构造函数：
+          # constructor(address _usdt, address _usdc, address _ufo, address _feeRecipient)
+          forge create src/UFOVault.sol:UFOVault \
+            --rpc-url $RPC_URL \
+            --private-key $DEPLOYER_PK \
+            --broadcast \
+            --legacy \
+            --constructor-args \
+            0x55d398326f99059fF775485246999027B3197955 \
+            0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d \
+            0x9CB5e78F88EFfb5315A7B445aFa64790C8e53eaB \
+            $FEE_RECIPIENT
