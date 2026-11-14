@@ -1,0 +1,41 @@
+name: Grant Roles to New Vault
+
+on:
+  workflow_dispatch:
+
+jobs:
+  grant-roles:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Grant MINTER and BURNER Roles
+        env:
+          RPC_URL: "https://bsc-dataseed.binance.org"
+          RAW_PK: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+          TOKEN_ADDRESS: "0x9CB5e78F88EFfb5315A7B445aFa64790C8e53eaB"
+          VAULT_ADDRESS: "0x62Eaf08612c77F944265DE421F3Bed054531cC9C"
+          # 角色哈希
+          MINTER_ROLE: "0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6"
+          BURNER_ROLE: "0x3c11e2b76556fb1e2c19852569ccecf5cd1b8cfeea71bc8cecb8cd880567b31f"
+        run: |
+          echo "🔍 正在清洗私钥..."
+          CLEAN_PK=$(echo "$RAW_PK" | tr -d '[:space:]')
+          if [[ ! "$CLEAN_PK" == 0x* ]]; then
+            CLEAN_PK="0x$CLEAN_PK"
+          fi
+          export DEPLOYER_PK=$CLEAN_PK
+          
+          echo "🔑 1. 授予 MINTER_ROLE (印钞权)..."
+          cast send $TOKEN_ADDRESS "grantRole(bytes32,address)" $MINTER_ROLE $VAULT_ADDRESS --rpc-url $RPC_URL --private-key $DEPLOYER_PK --legacy
+          
+          echo "🔥 2. 授予 BURNER_ROLE (销毁权)..."
+          cast send $TOKEN_ADDRESS "grantRole(bytes32,address)" $BURNER_ROLE $VAULT_ADDRESS --rpc-url $RPC_URL --private-key $DEPLOYER_PK --legacy
+          
+          echo "✅ 授权完成！新金库已可以正常工作。"
