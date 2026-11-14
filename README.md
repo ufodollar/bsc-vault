@@ -1,4 +1,4 @@
-以下是 README.md 的纯净文本，直接全选复制，粘贴到 GitHub 的编辑框内即可（不带任何代码块符号，GitHub 会自动渲染）：
+
 
 UFO Dollar - Smart Contracts & Protocol Core
 
