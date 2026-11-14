@@ -1,66 +1,50 @@
-```markdown
-# UFO Dollar - Protocol Core & Smart Contracts
+<h1>UFO Dollar - Protocol Core & Smart Contracts</h1>
 
-The official smart contract architecture for **UFO Dollar**, a privacy-preserving, USD-pegged settlement stablecoin built on BNB Smart Chain (BSC).
+<p>Smart contract architecture for <strong>UFO Dollar</strong>, a dual-collateral, USD-pegged settlement stablecoin on BNB Smart Chain (BSC).</p>
 
-UFO is designed to provide a highly secure, zero-slippage settlement layer for B2B cross-border trade and institutional fund clearing.
+<h2>🔗 Live Deployments (BSC Mainnet)</h2>
+<ul>
+    <li><strong>UFOVault (Dual-Collateral Core):</strong> <a href="https://bscscan.com/address/0x62Eaf08612c77F944265DE421F3Bed054531cC9C">0x62Eaf08612c77F944265DE421F3Bed054531cC9C</a></li>
+    <li><strong>UFOToken (ERC20):</strong> <a href="https://bscscan.com/address/0x9CB5e78F88EFfb5315A7B445aFa64790C8e53eaB">0x9CB5e78F88EFfb5315A7B445aFa64790C8e53eaB</a></li>
+</ul>
 
-## 🔗 Live Deployments (BSC Mainnet)
+<h2>✨ Core Architecture</h2>
+<ul>
+    <li><strong>Dual-Collateral:</strong> Accepts both USDT and USDC. Reserves are tracked independently via mapping.</li>
+    <li><strong>Zero-Slippage:</strong> Hardcoded 1:1 peg (1 USDT/USDC = 1 UFO). No AMM liquidity pools involved.</li>
+    <li><strong>Oracle-Free:</strong> No external price feeds required for minting/redeeming.</li>
+    <li><strong>0.5% Protocol Fee:</strong> Applied on both deposit and withdraw.</li>
+</ul>
 
-*   **UFOVault (Dual-Collateral Core):** [0x62Eaf08612c77F944265DE421F3Bed054531cC9C](https://bscscan.com/address/0x62Eaf08612c77F944265DE421F3Bed054531cC9C)
-*   **UFOToken (ERC20):** [0x9CB5e78F88EFfb5315A7B445aFa64790C8e53eaB](https://bscscan.com/address/0x9CB5e78F88EFfb5315A7B445aFa64790C8e53eaB)
+<h2>🛠 Tech Stack</h2>
+<ul>
+    <li><strong>Smart Contracts:</strong> Solidity ^0.8.20</li>
+    <li><strong>Framework:</strong> Foundry (Forge)</li>
+    <li><strong>Libraries:</strong> OpenZeppelin (ReentrancyGuard, Pausable, AccessControl)</li>
+    <li><strong>CI/CD:</strong> GitHub Actions</li>
+</ul>
 
-## ✨ Core Architecture
-
-### 1. Multi-Collateral Resilience (Risk Isolation)
-To mitigate the risk of a single stablecoin issuer freezing funds, `UFOVault` accepts **both USDT and USDC** as collateral. Reserves are isolated independently on-chain (`mapping(address => uint256) public totalReserves`). If one pool is frozen, the other remains operational.
-
-### 2. Strict 1:1 USD Peg (Zero-Slippage)
-Unlike AMM-based DEXs, UFO does not rely on liquidity pools. `1 USDT/USDC` = `$1.00 USD` = `1 UFO` (minus a 0.5% protocol fee). There is **zero slippage** for any transaction size.
-
-### 3. Oracle-Free Stability
-The `UFOVault` does not rely on external price feeds. The exchange rate is mathematically hardcoded to 1:1. This eliminates oracle manipulation and flash-loan price attacks.
-
-### 4. Closed-Loop Architecture
-UFO is not listed on public exchanges and has no public liquidity pools. Enterprise trade secrets and transaction sizes are shielded from public block explorers and on-chain analysts.
-
-## 🛠 Tech Stack
-*   **Smart Contracts:** Solidity `^0.8.20`
-*   **Framework:** Foundry (Forge)
-*   **Libraries:** OpenZeppelin (Security, ReentrancyGuard, Pausable, AccessControl)
-
-## 🚀 Local Development & Testing
-Ensure [Foundry](https://book.getfoundry.sh/getting-started/installation) is installed.
-
-```bash
-git clone https://github.com/ufodollar/bsc-vault.git
+<h2>🚀 Local Development & Testing</h2>
+<pre><code>git clone https://github.com/ufodollar/bsc-vault.git
 cd bsc-vault
 forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 --no-commit
 forge build
-forge test
-```
+forge test</code></pre>
 
-Deployment to BSC Mainnet
+<h3>Environment Variables</h3>
+<p>Create a <code>.env</code> file at the root for deployment:</p>
+<pre><code>PRIVATE_KEY=your_wallet_private_key
+BSC_RPC_URL=https://bsc-dataseed.binance.org</code></pre>
 
-```bash
-forge create src/UFOVault.sol:UFOVault \
-  --rpc-url https://bsc-dataseed.binance.org \
-  --private-key $PRIVATE_KEY \
-  --constructor-args \
-  0x55d398326f99059fF775485246999027B3197955 \
-  0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d \
-  0x9CB5e78F88EFfb5315A7B445aFa64790C8e53eaB \
-  <FEE_RECIPIENT_ADDRESS>
-```
+<h3>Deployment to BSC Mainnet</h3>
+<pre><code>forge create src/UFOVault.sol:UFOVault --rpc-url $BSC_RPC_URL --private-key $PRIVATE_KEY --constructor-args 0x55d398326f99059fF775485246999027B3197955 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d 0x9CB5e78F88EFfb5315A7B445aFa64790C8e53eaB &lt;FEE_RECIPIENT_ADDRESS&gt;</code></pre>
 
-🛡 Security & Transparency
+<h2>🛡 Security</h2>
+<ul>
+    <li>Only <code>UFOVault</code> holds <code>MINTER_ROLE</code> and <code>BURNER_ROLE</code>.</li>
+    <li><code>Pausable</code> mechanism for emergency halts.</li>
+    <li>All transactions and balances are fully verifiable on BscScan.</li>
+</ul>
 
-· Role-Based Access Control (RBAC): Only the UFOVault contract holds the MINTER_ROLE and BURNER_ROLE. No arbitrary minting is possible.
-· Emergency Pause: Pausable mechanism to halt transactions in case of vulnerabilities.
-· On-Chain Verifiability: All vault balances and fee distributions are fully verifiable on BscScan.
-
-📄 License
-
-This project is licensed under the MIT License.
-
-```
+<h2>📄 License</h2>
+<p>This project is licensed under the MIT License.</p>
