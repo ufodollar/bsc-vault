@@ -1,7 +1,7 @@
 <div align="center">
   <h1>🛸 UFO Dollar - Protocol Core</h1>
   
-  <p><strong>The Smart Contract Architecture for the Next-Generation B2B Settlement Stablecoin.</strong></p>
+  <p><strong>The Dual-Collateral, Value-Invisible Settlement Stablecoin on BNB Chain.</strong></p>
   
   <p>
     <img src="https://img.shields.io/badge/Status-Active-success?style=for-the-badge&logo=checkmarx" alt="Status">
@@ -54,21 +54,21 @@
   <tr>
     <td width="50%">
       <h3>🛡️ Multi-Collateral Resilience</h3>
-      <p>Accepts both <b>USDT and USDC</b>. Reserves are tracked independently via <code>mapping</code>. If one asset pool is compromised or frozen by external forces, the other remains fully operational, ensuring uninterrupted redemption.</p>
+      <p>Accepts both <b>USDT and USDC</b>. Reserves are tracked independently via <code>mapping</code>. If one asset pool is compromised or frozen by external forces, the other remains fully operational.</p>
     </td>
     <td width="50%">
-      <h3>⚡ Zero-Slippage 1:1 Peg</h3>
-      <p>Hardcoded 1:1 peg (1 USDT/USDC = 1 UFO). No AMM liquidity pools involved. Highly predictable settlement route for institutional traders making large-volume cross-border payments.</p>
+      <h3>🕵️ Value-Invisible (Anti-Extortion)</h3>
+      <p>Because UFO has no public liquidity pools or DEX listings, standard wallets (MetaMask/Trust) display its fiat value as <b>$0.00</b>. This acts as a powerful physical camouflage against extortion and automated wallet-draining bots.</p>
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <h3>🔮 Oracle-Free Stability</h3>
-      <p>No external price feeds (like Chainlink) required for minting/redeeming. This entirely eliminates the risk of oracle manipulation, flash-loan price attacks, or latency exploits.</p>
+      <h3>⚡ Zero-Slippage 1:1 Peg</h3>
+      <p>Hardcoded 1:1 peg (1 USDT/USDC = 1 UFO). No AMM liquidity pools involved. Highly predictable settlement route for institutional traders making large-volume cross-border payments.</p>
     </td>
     <td width="50%">
-      <h3>🔒 Closed-Loop Privacy</h3>
-      <p>Enterprise trade secrets, transaction sizes, and counterparties are shielded from public block explorers and on-chain analysts, isolating the asset from market speculation.</p>
+      <h3>🔮 Oracle-Free Stability</h3>
+      <p>No external price feeds (like Chainlink) required for minting/redeeming. This entirely eliminates the risk of oracle manipulation, flash-loan price attacks, or latency exploits.</p>
     </td>
   </tr>
 </table>
