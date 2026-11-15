@@ -9,17 +9,24 @@
     <img src="https://img.shields.io/badge/Framework-Foundry-FF4500?style=for-the-badge" alt="Foundry">
     <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License">
   </p>
+
+  <p>
+    <kbd>🚀 Deployment</kbd> &nbsp; • &nbsp; 
+    <kbd>✨ Architecture</kbd> &nbsp; • &nbsp; 
+    <kbd>🛡️ Security</kbd> &nbsp; • &nbsp; 
+    <kbd>📄 License</kbd>
+  </p>
 </div>
 
 <br />
 <hr />
 
-<h2>🌍 What is UFO Dollar?</h2>
-<p><strong>UFO Dollar</strong> is an open-source, USD-pegged stablecoin designed specifically for <b>concealing stablecoin assets and facilitating private commercial settlement</b>. Operating on the BNB Smart Chain, it serves as a powerful financial tool for businesses and individuals who require absolute asset security.</p>
-
-<p>By intentionally avoiding public DEX listings and liquidity pools, mainstream wallets (such as MetaMask and Trust Wallet) display UFO's fiat value as <b>$0.00</b>. This creates a natural "visual camouflage" against physical extortion, extortion, and automated wallet-draining bots. Currently, UFO is widely used in <b>over 60 countries</b> for cryptocurrency security and private commercial settlement.</p>
-
-<p><b>Commercial Use Case:</b> A business can mint UFO using USDT/USDC, transfer it to a commercial partner, and the partner can seamlessly redeem it for stablecoins on the other end—all without drawing public attention or exposing transaction details to on-chain analysts.</p>
+<h2>🌍 The Value-Invisible Stablecoin</h2>
+<blockquote>
+  <p><b>Designed for concealing stablecoin assets and private commercial settlement.</b></p>
+  <p>UFO Dollar is an open-source, USD-pegged stablecoin. By intentionally avoiding public DEX listings and liquidity pools, mainstream wallets (MetaMask, Trust Wallet) display its fiat value as <b>$0.00</b>. This acts as a natural camouflage against physical extortion, targeted attacks, and automated wallet-draining bots.</p>
+  <p>Currently, UFO is widely used in <b>over 60 countries</b> for cryptocurrency security and private commercial settlement. Businesses can mint UFO with USDT/USDC and send it to commercial partners, who seamlessly redeem it for stablecoins—bypassing public exposure and traditional friction.</p>
+</blockquote>
 
 <h2>🔗 Live Deployments (BSC Mainnet)</h2>
 
@@ -50,21 +57,21 @@
 <table>
   <tr>
     <td width="50%">
-      <h3>🕵️ Asset Camouflage ($0 Value)</h3>
-      <p>UFO has no public price feeds or DEX pools. Standard wallets display its value as <b>$0.00</b>. This natural camouflage allows for large commercial settlements and payroll transfers without drawing the attention of trackers or malicious actors.</p>
+      <h3>🕵️ Asset Camouflage</h3>
+      <p>No public price feeds or DEX pools. Standard wallets display a <b>$0.00</b> value, allowing users to conduct large commercial settlements and payroll transfers without drawing public attention.</p>
     </td>
     <td width="50%">
-      <h3>⚡ Strict 1:1 Peg (Zero Slippage)</h3>
-      <p>Mint and redeem at a rigid 1:1 ratio. There are no AMM curves, no liquidity slippage, and no external price oracles to manipulate. What you deposit is exactly what you can withdraw.</p>
+      <h3>⚡ Strict 1:1 Peg</h3>
+      <p>Mint and redeem at a rigid 1:1 ratio. No AMM curves, zero slippage, and no external price oracles to manipulate. What you deposit is exactly what you can withdraw.</p>
     </td>
   </tr>
   <tr>
     <td width="50%">
       <h3>🔒 Dual-Collateral</h3>
-      <p>Accepts both <b>USDT and USDC</b>. Reserves are tracked independently. If one stablecoin faces regulatory blacklisting, the other pool remains fully operational, ensuring uninterrupted redemption.</p>
+      <p>Accepts both <b>USDT and USDC</b>. Reserves are strictly isolated. If one stablecoin faces systemic freezing, the other pool remains fully operational for redemption.</p>
     </td>
     <td width="50%">
-      <h3>📈 Instant Global Settlement</h3>
+      <h3>📈 Instant Settlement</h3>
       <p>Cross-border funds arrive within seconds. Settlement operates 24/7, bypassing traditional banking delays and enabling seamless private commercial clearing on BSC.</p>
     </td>
   </tr>
@@ -106,14 +113,18 @@ BSC_RPC_URL=https://bsc-dataseed.binance.org</code></pre>
 
 <h2>🛡 Security & Transparency</h2>
 <blockquote>
-  <p>🔍 <strong>On-Chain Verifiability:</strong> While user transactions are camouflaged, the Vault's total reserves are 100% transparent and verifiable on BscScan.</p>
+  <p>🔍 <strong>On-Chain Verifiability:</strong> While user transaction flows are camouflaged, the Vault's total reserves are 100% transparent and verifiable on BscScan.</p>
 </blockquote>
 <blockquote>
-  <p>⚠️ <strong>Role-Based Access Control:</strong> Only the <code>UFOVault</code> contract holds the <code>MINTER_ROLE</code> and <code>BURNER_ROLE</code>. No arbitrary minting by any external entity is possible.</p>
+  <p>⚠️ <strong>Role-Based Access Control:</strong> Only the <code>UFOVault</code> contract holds the <code>MINTER_ROLE</code> and <code>BURNER_ROLE</code>. No arbitrary minting is possible.</p>
 </blockquote>
 
 <h2>📄 Legal Disclaimer</h2>
-<p><b>This is a technical protocol, not an investment product.</b> UFO does not offer yields or speculative returns. Users and institutional clients are solely responsible for ensuring their use of the protocol complies with local laws. UFO is not offered to persons in restricted jurisdictions including the United States, Mainland China, Iran, North Korea, Syria, Cuba, Venezuela, Russia, and Belarus.</p>
+<p><b>This is a technical protocol, not an investment product.</b> UFO does not offer yields or speculative returns. Users are solely responsible for ensuring their use of the protocol complies with local laws. UFO is not offered to persons in restricted jurisdictions including the United States, Mainland China, Iran, North Korea, Syria, Cuba, Venezuela, Russia, and Belarus.</p>
 
-<hr />
-<p align="center"><i>This project is licensed under the MIT License.</i></p>
+<br />
+<div align="center">
+  <p><i>This project is licensed under the MIT License.</i></p>
+  <img src="https://forthebadge.com/images/badges/built-with-love.svg" height="28">
+  <img src="https://forthebadge.com/images/badges/open-source.svg" height="28">
+</div>
