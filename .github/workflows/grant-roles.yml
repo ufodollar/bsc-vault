@@ -21,9 +21,8 @@ jobs:
           RAW_PK: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
           TOKEN_ADDRESS: "0x9CB5e78F88EFfb5315A7B445aFa64790C8e53eaB"
           
-          # 🚨 关键修改：这里改成你刚刚通过上一个 Action 部署出的【新版 UFOVault 合约地址】！
-          # 原来是 0x62Eaf0... (旧版)，千万别用那个。
-          NEW_VAULT_ADDRESS: "0x填入你的新版Vault地址" 
+          # 🚨 已经替换为你刚刚部署成功的新版 UFOVault 地址！
+          NEW_VAULT_ADDRESS: "0x5C4eb7b82EFc4840e2fDa80Df73C53dc6b914790" 
           
           # 角色哈希
           MINTER_ROLE: "0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6"
