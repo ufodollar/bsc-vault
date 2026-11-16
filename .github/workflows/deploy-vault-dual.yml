@@ -24,11 +24,13 @@ jobs:
           RPC_URL: "https://bsc-dataseed.binance.org"
           RAW_PK: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
           FEE_RECIPIENT: "0x62B51A31ff8d9eBCD4777AE850a7ce524fF2ffA3"
-          # ⚠️ 新增：Chainlink BSC 价格源
-          # USDT/USD 已确认
+          
+          # 🟢 已填入 Chainlink 在 BSC 上的官方价格源地址
+          # USDT/USD 喂价合约
           USDT_FEED: "0xB97Ad0E74fa7d920791E90258A6E2085088b4320"
-          # ⚠️ 请务必去 Chainlink 官方文档(BSC Mainnet)确认 USDC/USD 地址后填入，不要乱猜
-          USDC_FEED: "0x0000000000000000000000000000000000000000" # 替换为真实的 USDC/USD 地址
+          # USDC/USD 喂价合约
+          USDC_FEED: "0x51597f405303C4377E36123cBc172b13269EA163"
+          
         run: |
           echo "🔍 正在清洗私钥..."
           CLEAN_PK=$(echo "$RAW_PK" | tr -d '[:space:]')
