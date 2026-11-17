@@ -171,7 +171,6 @@ contract UFOVault is ReentrancyGuard, Ownable, Pausable {
 
         uint256 price = getPrice(tokenAddress);
         uint256 usdValue = (amount * price) / PRICE_DECIMALS;
-        // 防止小额存款因取整导致 usdValue = 0，用户存 token 但得 0 UFO
         if (usdValue == 0) revert ZeroAmount();
 
         uint256 feeUsd = (usdValue * FEE_RATE) / FEE_BASE;
@@ -186,7 +185,6 @@ contract UFOVault is ReentrancyGuard, Ownable, Pausable {
 
         totalReserves[tokenAddress] += netTokens;
 
-        // UFO 按 USD 价值 1:1 铸造
         uint256 ufoAmount = usdValue - feeUsd;
         ufo.mint(msg.sender, ufoAmount);
 
@@ -211,15 +209,11 @@ contract UFOVault is ReentrancyGuard, Ownable, Pausable {
         if (ufoAmount == 0) revert ZeroAmount();
 
         uint256 price = getPrice(tokenAddress);
-
-        // UFO 刚性 1:1 USD，所以 ufoAmount 的 USD 价值 = ufoAmount
         uint256 usdValue = ufoAmount;
-
         uint256 feeUsd = (usdValue * FEE_RATE) / FEE_BASE;
         uint256 netUsd = usdValue - feeUsd;
 
         uint256 tokenOut = (netUsd * PRICE_DECIMALS) / price;
-        // 防止小额赎回因取整导致 tokenOut = 0，用户 burn UFO 但得 0 token
         if (tokenOut == 0) revert ZeroAmount();
 
         uint256 feeTokens = (feeUsd * PRICE_DECIMALS) / price;
@@ -253,7 +247,6 @@ contract UFOVault is ReentrancyGuard, Ownable, Pausable {
 
     /**
      * @notice 基于链上储备 USD 价值与 UFO 总供应量计算 NAV。
-     *         价格源读取失败或陈旧的代币储备按 0 USD 价值计入，使 NAV 偏保守。
      */
     function getExchangeRate() external view returns (uint256) {
         uint256 supply = ufo.totalSupply();
@@ -315,7 +308,10 @@ contract UFOVault is ReentrancyGuard, Ownable, Pausable {
         emit PriceFeedUpdated(_token, _priceFeed);
     }
 
+    // 🚨 修复点：移除代币前强制要求储备金清空
     function removeSupportedToken(address _token) external onlyOwner {
+        if (totalReserves[_token] > 0) revert InsufficientLiquidity();
+        
         isSupportedToken[_token] = false;
         for (uint256 i = 0; i < supportedTokens.length; i++) {
             if (supportedTokens[i] == _token) {
