@@ -1,0 +1,34 @@
+name: Set Correct USDC Price Feed
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix-feed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Call setPriceFeed
+        env:
+          RPC_URL: "https://bsc-dataseed.binance.org"
+          RAW_PK: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+          VAULT_ADDRESS: "0xa8A312b008F3EE819C535EB3cAD754B2e5B8b3a2"
+          USDC_ADDRESS: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d"
+          # 🟢 BSC 上真实的 USDC/USD Chainlink 喂价
+          CORRECT_USDC_FEED: "0x51597f405303C4377E36123cBc172b13269EA163"
+        run: |
+          echo "🔍 正在清洗私钥..."
+          CLEAN_PK=$(echo "$RAW_PK" | tr -d '[:space:]')
+          if [[ ! "$CLEAN_PK" == 0x* ]]; then
+            CLEAN_PK="0x$CLEAN_PK"
+          fi
+          export DEPLOYER_PK=$CLEAN_PK
+          
+          echo "🔧 正在将 USDC 喂价修复为真实的 Chainlink 地址..."
+          cast send $VAULT_ADDRESS "setPriceFeed(address,address)" $USDC_ADDRESS $CORRECT_USDC_FEED --rpc-url $RPC_URL --private-key $DEPLOYER_PK --legacy
+          
+          echo "✅ 修复完成！"
