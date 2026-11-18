@@ -41,7 +41,7 @@
   <tbody>
     <tr>
       <td><b>UFOVault</b> (Core)</td>
-      <td><a href="https://bscscan.com/address/0x62Eaf08612c77F944265DE421F3Bed054531cC9C"><code>0x62Eaf08612c77F944265DE421F3Bed054531cC9C</code></a></td>
+      <td><a href="https://bscscan.com/address/0xa8A312b008F3EE819C535EB3cAD754B2e5B8b3a2"><code>0xa8A312b008F3EE819C535EB3cAD754B2e5B8b3a2</code></a></td>
       <td>✅ Active</td>
     </tr>
     <tr>
@@ -84,11 +84,11 @@
   <li><strong>Libraries:</strong> OpenZeppelin (ReentrancyGuard, Pausable, AccessControl)</li>
 </ul>
 
-<h2>🚀 Local Development & Deployment</h2>
+<h2>🚀 Local Development &amp; Deployment</h2>
 <details>
 <summary><b>👉 Click to Expand Deployment Guide</b></summary>
 <br>
-<b>1. Clone & Install Dependencies</b>
+<b>1. Clone &amp; Install Dependencies</b>
 <pre><code class="language-bash">git clone https://github.com/ufodollar/bsc-vault.git
 cd bsc-vault
 forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 --no-commit
@@ -108,10 +108,12 @@ BSC_RPC_URL=https://bsc-dataseed.binance.org</code></pre>
   0x55d398326f99059fF775485246999027B3197955 \
   0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d \
   0x9CB5e78F88EFfb5315A7B445aFa64790C8e53eaB \
-  &lt;FEE_RECIPIENT_ADDRESS&gt;</code></pre>
+  &lt;FEE_RECIPIENT_ADDRESS&gt; \
+  0xB97Ad0E74fa7d920791E90258A6E2085088b4320 \
+  0xeeF31c7d9F2E82e8A497b140cc60cc082Be4b94e</code></pre>
 </details>
 
-<h2>🛡 Security & Transparency</h2>
+<h2>🛡 Security &amp; Transparency</h2>
 <blockquote>
   <p>🔍 <strong>On-Chain Verifiability:</strong> While user transaction flows are camouflaged, the Vault's total reserves are 100% transparent and verifiable on BscScan.</p>
 </blockquote>
