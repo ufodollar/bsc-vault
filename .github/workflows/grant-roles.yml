@@ -1,44 +1,112 @@
-name: Grant Roles to New Vault
+name: Grant Roles to Vault
+
+# 用途：把 MINTER_ROLE / BURNER_ROLE 授予某个 Vault，并当场校验。
+# 关键点：角色哈希用 cast keccak 现场计算，绝不硬编码。
+# 幂等：已授权的会跳过，可以放心重复运行。
 
 on:
   workflow_dispatch:
+    inputs:
+      vault_address:
+        description: "要授权的 UFOVault 地址"
+        required: true
+        default: "0xa8A312b008F3EE819C535EB3cAD754B2e5B8b3a2"
+      token_address:
+        description: "UFOToken 地址"
+        required: true
+        default: "0x9CB5e78F88EFfb5315A7B445aFa64790C8e53eaB"
+      revoke_wrong_role:
+        description: "同时回收历史误授的 0x3c11e2b7… 角色"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+env:
+  RPC_URL: ${{ secrets.BSC_RPC_URL || 'https://bsc-dataseed.binance.org' }}
+  # 这是 CI 里曾经写错、并已真的授予 Vault 的那个垃圾角色，谁都不会检查它
+  WRONG_ROLE: "0x3c11e2b76556fb1e2c19852569ccecf5cd1b8cfeea71bc8cecb8cd880567b31f"
 
 jobs:
-  grant-roles:
+  grant:
     runs-on: ubuntu-latest
+    environment: production
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
 
-      - name: Grant MINTER and BURNER Roles
+      - name: Grant and verify
         env:
-          RPC_URL: "https://bsc-dataseed.binance.org"
           RAW_PK: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
-          TOKEN_ADDRESS: "0x9CB5e78F88EFfb5315A7B445aFa64790C8e53eaB"
-          
-          # 🚨 这里已经替换为你刚刚部署成功的最新的 UFOVault 地址！
-          NEW_VAULT_ADDRESS: "0xa8A312b008F3EE819C535EB3cAD754B2e5B8b3a2" 
-          
-          # 角色哈希
-          MINTER_ROLE: "0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6"
-          BURNER_ROLE: "0x3c11e2b76556fb1e2c19852569ccecf5cd1b8cfeea71bc8cecb8cd880567b31f"
+          VAULT: ${{ inputs.vault_address }}
+          TOKEN: ${{ inputs.token_address }}
+          REVOKE: ${{ inputs.revoke_wrong_role }}
         run: |
-          echo "🔍 正在清洗私钥..."
-          CLEAN_PK=$(echo "$RAW_PK" | tr -d '[:space:]')
-          if [[ ! "$CLEAN_PK" == 0x* ]]; then
-            CLEAN_PK="0x$CLEAN_PK"
+          set -euo pipefail
+
+          PK="$(echo "$RAW_PK" | tr -d '[:space:]')"
+          case "$PK" in 0x*) ;; *) PK="0x$PK" ;; esac
+
+          MINTER=$(cast keccak "MINTER_ROLE")
+          BURNER=$(cast keccak "BURNER_ROLE")
+
+          echo "VAULT  = $VAULT"
+          echo "TOKEN  = $TOKEN"
+          echo "MINTER = $MINTER"
+          echo "BURNER = $BURNER"
+
+          # 防御：如果哪天有人又改了常量导致和真实哈希不同，这里直接失败
+          if [ "$BURNER" != "0x3c11d16cbaffd01df69ce1c404f6340ee057498f5f00246190ea54220576a848" ]; then
+            echo "::error::keccak 结果异常，停止执行"; exit 1
           fi
-          export DEPLOYER_PK=$CLEAN_PK
-          
-          echo "🔑 1. 授予 MINTER_ROLE (印钞权)..."
-          cast send $TOKEN_ADDRESS "grantRole(bytes32,address)" $MINTER_ROLE $NEW_VAULT_ADDRESS --rpc-url $RPC_URL --private-key $DEPLOYER_PK --legacy
-          
-          echo "🔥 2. 授予 BURNER_ROLE (销毁权)..."
-          cast send $TOKEN_ADDRESS "grantRole(bytes32,address)" $BURNER_ROLE $NEW_VAULT_ADDRESS --rpc-url $RPC_URL --private-key $DEPLOYER_PK --legacy
-          
-          echo "✅ 授权完成！新金库已可以正常工作。"
+
+          check() {
+            cast call "$TOKEN" "hasRole(bytes32,address)(bool)" "$1" "$VAULT" --rpc-url "$RPC_URL"
+          }
+
+          echo "--- 授权前 ---"
+          M_BEFORE=$(check "$MINTER"); B_BEFORE=$(check "$BURNER")
+          echo "MINTER=$M_BEFORE  BURNER=$B_BEFORE"
+
+          [ "$M_BEFORE" = "true" ] || {
+            echo "→ grant MINTER_ROLE"
+            cast send "$TOKEN" "grantRole(bytes32,address)" "$MINTER" "$VAULT" \
+              --rpc-url "$RPC_URL" --private-key "$PK" --legacy
+          }
+
+          [ "$B_BEFORE" = "true" ] || {
+            echo "→ grant BURNER_ROLE"
+            cast send "$TOKEN" "grantRole(bytes32,address)" "$BURNER" "$VAULT" \
+              --rpc-url "$RPC_URL" --private-key "$PK" --legacy
+          }
+
+          M=$(check "$MINTER"); B=$(check "$BURNER")
+          echo "--- 授权后 ---"
+          echo "MINTER=$M  BURNER=$B"
+
+          # 这一句才是真正的"完成"，不是 echo 出来的
+          if [ "$M" != "true" ] || [ "$B" != "true" ]; then
+            echo "::error::角色未生效：调用者可能不持有 DEFAULT_ADMIN_ROLE"; exit 1
+          fi
+
+          if [ "$REVOKE" = "true" ] && [ "$(check "$WRONG_ROLE")" = "true" ]; then
+            echo "→ 回收误授角色 $WRONG_ROLE"
+            cast send "$TOKEN" "revokeRole(bytes32,address)" "$WRONG_ROLE" "$VAULT" \
+              --rpc-url "$RPC_URL" --private-key "$PK" --legacy \
+              || echo "::warning::回收失败（调用者可能不是 admin），不影响主流程"
+          fi
+
+          {
+            echo "## 授权结果"
+            echo ""
+            echo "| 项目 | 值 |"
+            echo "|---|---|"
+            echo "| Vault | \`$VAULT\` |"
+            echo "| MINTER_ROLE | $M |"
+            echo "| BURNER_ROLE | $B |"
+            echo ""
+            echo "下一步：用 1 USDT 走一遍 deposit → withdraw，确认端到端可用后再放开额度。"
+          } >> "$GITHUB_STEP_SUMMARY"
